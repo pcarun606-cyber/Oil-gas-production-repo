@@ -1,4 +1,13 @@
 import streamlit as st
+
+# MUST call set_page_config before any other streamlit commands
+st.set_page_config(
+    page_title="Production Dashboard",
+    page_icon="⛽",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
@@ -20,14 +29,6 @@ except Exception as e:
 
 warnings.filterwarnings('ignore')
 logging.basicConfig(level=logging.INFO)
-
-# Set page configuration
-st.set_page_config(
-    page_title="Production Dashboard",
-    page_icon="⛽",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
 
 # Custom CSS for styling
 st.markdown("""
