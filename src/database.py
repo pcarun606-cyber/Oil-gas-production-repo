@@ -6,12 +6,20 @@ import os
 import logging
 from typing import Optional, List, Dict, Any
 import pandas as pd
-from databricks.sql import connect
-from databricks.sql.client import Connection
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Try to import Databricks SQL connector, but allow graceful failure
+try:
+    from databricks.sql import connect
+    from databricks.sql.client import Connection
+    DATABRICKS_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Databricks SQL connector not available: {str(e)}")
+    DATABRICKS_AVAILABLE = False
+    Connection = None
 
 
 class DatabricksConnection:
@@ -64,6 +72,11 @@ class DatabricksConnection:
             bool: True if connection successful, False otherwise
         """
         try:
+            # Check if Databricks SQL connector is available
+            if not DATABRICKS_AVAILABLE:
+                logger.warning("Databricks SQL connector not installed. Using sample data.")
+                return False
+            
             # Check if credentials are placeholder values
             if 'your_' in str(self.token).lower() or 'your-' in str(self.host).lower():
                 logger.warning("Databricks credentials are placeholder values. Skipping connection.")

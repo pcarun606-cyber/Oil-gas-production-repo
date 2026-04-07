@@ -12,7 +12,11 @@ import sys
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
-from database import get_databricks_connection
+try:
+    from database import get_databricks_connection
+except Exception as e:
+    print(f"Warning: Failed to import database module: {str(e)}")
+    get_databricks_connection = None
 
 warnings.filterwarnings('ignore')
 logging.basicConfig(level=logging.INFO)
@@ -281,6 +285,8 @@ st.markdown("""
 def get_db_connection():
     """Get cached Databricks connection"""
     try:
+        if get_databricks_connection is None:
+            return None
         db = get_databricks_connection()
         if db is None:
             st.info("📊 Displaying sample data (Databricks connection unavailable)")
