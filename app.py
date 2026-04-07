@@ -327,41 +327,41 @@ def generate_production_plan_data():
 
 # Cache data loaders with fallback
 @st.cache_data
-def load_annual_production_data(db):
+def load_annual_production_data(_db):
     """Load GOLD TABLE 1 with fallback"""
     try:
-        if db and hasattr(db, 'get_annual_production_data'):
-            return db.get_annual_production_data()
+        if _db and hasattr(_db, 'get_annual_production_data'):
+            return _db.get_annual_production_data()
     except Exception as e:
         logging.warning(f"Could not load from Databricks: {e}")
     return generate_sample_annual_production_data()
 
 @st.cache_data
-def load_production_efficiency_data(db):
+def load_production_efficiency_data(_db):
     """Load GOLD TABLE 2 with fallback"""
     try:
-        if db and hasattr(db, 'get_production_efficiency_data'):
-            return db.get_production_efficiency_data()
+        if _db and hasattr(_db, 'get_production_efficiency_data'):
+            return _db.get_production_efficiency_data()
     except Exception as e:
         logging.warning(f"Could not load efficiency data: {e}")
     return generate_sample_production_efficiency_data()
 
 @st.cache_data
-def load_water_cut_analysis_data(db):
+def load_water_cut_analysis_data(_db):
     """Load GOLD TABLE 3 with fallback"""
     try:
-        if db and hasattr(db, 'get_water_cut_analysis_data'):
-            return db.get_water_cut_analysis_data()
+        if _db and hasattr(_db, 'get_water_cut_analysis_data'):
+            return _db.get_water_cut_analysis_data()
     except Exception as e:
         logging.warning(f"Could not load water cut data: {e}")
     return generate_sample_water_cut_analysis_data()
 
 @st.cache_data
-def load_optimization_candidates_data(db):
+def load_optimization_candidates_data(_db):
     """Load GOLD TABLE 4 with fallback"""
     try:
-        if db and hasattr(db, 'get_optimization_candidates_data'):
-            return db.get_optimization_candidates_data()
+        if _db and hasattr(_db, 'get_optimization_candidates_data'):
+            return _db.get_optimization_candidates_data()
     except Exception as e:
         logging.warning(f"Could not load optimization data: {e}")
     return generate_sample_optimization_candidates_data()
