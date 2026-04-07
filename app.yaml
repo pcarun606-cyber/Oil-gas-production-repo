@@ -29,43 +29,12 @@ env:
   - name: STREAMLIT_THEME_TEXT_COLOR
     value: "#ffffff"
   - name: DATABRICKS_HOST
-    value: "https://your-workspace-url.azuredatabricks.net"
+    value: "{{DATABRICKS_HOST}}"
   - name: DATABRICKS_TOKEN
-    value: "your_databricks_personal_access_token"
+    valueFrom: "databricks-token"
   - name: DATABRICKS_CATALOG
     value: "oilgasproduction"
   - name: DATABRICKS_SCHEMA
     value: "oilgasproductionschema"
   - name: DATABRICKS_CLUSTER_ID
     value: "oilgascluster"
-
-expose:
-  - path: /
-    port: 8501
-    protocol: http
-
-metadata:
-  name: production-dashboard
-  description: Oil & Gas Production Surveillance Dashboard
-  version: "1.0.0"
-  author: Production Analytics Team
-
-ports:
-  - name: http
-    port: 8501
-    protocol: TCP
-
-resources:
-  requests:
-    memory: "512Mi"
-    cpu: "500m"
-  limits:
-    memory: "1Gi"
-    cpu: "1000m"
-
-healthcheck:
-  enabled: true
-  path: /_stcore/health
-  interval: 30
-  timeout: 10
-  retries: 3
