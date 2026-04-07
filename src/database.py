@@ -33,7 +33,7 @@ class DatabricksConnection:
         self.token = os.getenv('DATABRICKS_TOKEN')
         self.catalog = os.getenv('DATABRICKS_CATALOG')
         self.schema = os.getenv('DATABRICKS_SCHEMA')
-        self.cluster_id = os.getenv('DATABRICKS_CLUSTER_ID')
+        self.warehouse_id = os.getenv('DATABRICKS_WAREHOUSE_ID')
         self.connection: Optional[Connection] = None
         
         # Validate required configuration
@@ -42,26 +42,21 @@ class DatabricksConnection:
     def _validate_config(self) -> None:
         """Validate that all required Databricks configuration is set"""
         missing_vars = []
-        placeholder_vars = []
         
         if not self.host or 'your-workspace' in str(self.host).lower():
             missing_vars.append('DATABRICKS_HOST')
         if not self.token or 'your_databricks' in str(self.token).lower():
-            placeholder_vars.append('DATABRICKS_TOKEN')
+            missing_vars.append('DATABRICKS_TOKEN')
         if not self.catalog or 'your_' in str(self.catalog).lower():
             missing_vars.append('DATABRICKS_CATALOG')
         if not self.schema or 'your_' in str(self.schema).lower():
             missing_vars.append('DATABRICKS_SCHEMA')
+        if not self.warehouse_id:
+            missing_vars.append('DATABRICKS_WAREHOUSE_ID')
         
         if missing_vars:
             logger.warning(
                 f"Missing required Databricks configuration: {', '.join(missing_vars)}"
-            )
-        
-        if placeholder_vars:
-            logger.warning(
-                f"Placeholder values detected for: {', '.join(placeholder_vars)}. "
-                f"Please set actual Databricks credentials in environment variables."
             )
     
     def connect(self) -> bool:
@@ -77,21 +72,21 @@ class DatabricksConnection:
                 logger.warning("Databricks SQL connector not installed. Using sample data.")
                 return False
             
-            # Check if credentials are placeholder values
-            if 'your_' in str(self.token).lower() or 'your-' in str(self.host).lower():
-                logger.warning("Databricks credentials are placeholder values. Skipping connection.")
-                return False
-            
             if not self.host or not self.token:
                 logger.warning("Databricks credentials not configured. Using sample data.")
                 return False
             
-            # Extract workspace name from host URL
+            if not self.warehouse_id:
+                logger.warning("SQL warehouse ID not configured. Using sample data.")
+                return False
+            
+            # Use SQL warehouse HTTP path
+            http_path = f"/sql/1.0/warehouses/{self.warehouse_id}"
+            
             self.connection = connect(
-                host=self.host,
-                auth_type="pat",
-                token=self.token,
-                http_path="/api/2.0/sql/statements"
+                server_hostname=self.host.replace("https://", "").rstrip("/"),
+                http_path=http_path,
+                access_token=self.token
             )
             logger.info("Successfully connected to Databricks")
             return True
@@ -168,108 +163,41 @@ class DatabricksConnection:
             raise
     
     def get_production_data(self, well_name: Optional[str] = None) -> pd.DataFrame:
-        """
-        Fetch production data from Databricks
-        
-        Args:
-            well_name: Optional filter by well name
-            
-        Returns:
-            pandas DataFrame with production data
-        """
-        query = f"""
-        SELECT * FROM {self.catalog}.{self.schema}.production_data
-        """
-        
+        """Fetch production data from Databricks"""
+        query = f"SELECT * FROM {self.catalog}.{self.schema}.production_data"
         if well_name:
             query += f" WHERE well_name = '{well_name}'"
-        
         query += " ORDER BY measurement_date DESC"
-        
         return self.fetch_dataframe(query)
     
     def get_well_forecast_data(self) -> pd.DataFrame:
-        """
-        Fetch well forecast data from Databricks
-        
-        Returns:
-            pandas DataFrame with forecast data
-        """
-        query = f"""
-        SELECT * FROM {self.catalog}.{self.schema}.well_forecasts
-        ORDER BY forecast_date DESC
-        """
-        
+        """Fetch well forecast data from Databricks"""
+        query = f"SELECT * FROM {self.catalog}.{self.schema}.well_forecasts ORDER BY forecast_date DESC"
         return self.fetch_dataframe(query)
     
     def get_monthly_summary(self) -> pd.DataFrame:
-        """
-        Fetch monthly production summary from Databricks
-        
-        Returns:
-            pandas DataFrame with monthly summary
-        """
-        query = f"""
-        SELECT * FROM {self.catalog}.{self.schema}.monthly_summary
-        ORDER BY month_date DESC
-        """
-        
+        """Fetch monthly production summary from Databricks"""
+        query = f"SELECT * FROM {self.catalog}.{self.schema}.monthly_summary ORDER BY month_date DESC"
         return self.fetch_dataframe(query)
     
     def get_annual_production_data(self) -> pd.DataFrame:
-        """
-        Fetch GOLD TABLE 1 - Annual production: Base annual production truth
-        
-        Returns:
-            pandas DataFrame with annual production data
-        """
-        query = f"""
-        SELECT * FROM {self.catalog}.{self.schema}.gold_well_annual_production
-        ORDER BY year DESC, wellbore_name
-        """
-        
+        """Fetch GOLD TABLE 1 - Annual production"""
+        query = f"SELECT * FROM {self.catalog}.{self.schema}.gold_well_annual_production ORDER BY year DESC, wellbore_name"
         return self.fetch_dataframe(query)
     
     def get_production_efficiency_data(self) -> pd.DataFrame:
-        """
-        Fetch GOLD TABLE 2 - Production efficiency: Oil & Gas production efficiency vs injection efforts
-        
-        Returns:
-            pandas DataFrame with production efficiency metrics
-        """
-        query = f"""
-        SELECT * FROM {self.catalog}.{self.schema}.gold_well_production_efficiency
-        ORDER BY year DESC, wellbore_name
-        """
-        
+        """Fetch GOLD TABLE 2 - Production efficiency"""
+        query = f"SELECT * FROM {self.catalog}.{self.schema}.gold_well_production_efficiency ORDER BY year DESC, wellbore_name"
         return self.fetch_dataframe(query)
     
     def get_water_cut_analysis_data(self) -> pd.DataFrame:
-        """
-        Fetch GOLD TABLE 3 - Water cut analysis: Water cut %, dominance flag
-        
-        Returns:
-            pandas DataFrame with water cut analysis data
-        """
-        query = f"""
-        SELECT * FROM {self.catalog}.{self.schema}.gold_well_water_cut_analysis
-        ORDER BY year DESC, wellbore_name
-        """
-        
+        """Fetch GOLD TABLE 3 - Water cut analysis"""
+        query = f"SELECT * FROM {self.catalog}.{self.schema}.gold_well_water_cut_analysis ORDER BY year DESC, wellbore_name"
         return self.fetch_dataframe(query)
     
     def get_optimization_candidates_data(self) -> pd.DataFrame:
-        """
-        Fetch GOLD TABLE 4 - Optimization candidates: Identify wells suitable for optimization actions
-        
-        Returns:
-            pandas DataFrame with optimization candidate analysis
-        """
-        query = f"""
-        SELECT * FROM {self.catalog}.{self.schema}.gold_well_optimization_candidates
-        ORDER BY year DESC, wellbore_name
-        """
-        
+        """Fetch GOLD TABLE 4 - Optimization candidates"""
+        query = f"SELECT * FROM {self.catalog}.{self.schema}.gold_well_optimization_candidates ORDER BY year DESC, wellbore_name"
         return self.fetch_dataframe(query)
 
 
