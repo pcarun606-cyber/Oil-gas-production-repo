@@ -34,19 +34,26 @@ class DatabricksConnection:
     def _validate_config(self) -> None:
         """Validate that all required Databricks configuration is set"""
         missing_vars = []
+        placeholder_vars = []
         
-        if not self.host:
+        if not self.host or 'your-workspace' in str(self.host).lower():
             missing_vars.append('DATABRICKS_HOST')
-        if not self.token:
-            missing_vars.append('DATABRICKS_TOKEN')
-        if not self.catalog:
+        if not self.token or 'your_databricks' in str(self.token).lower():
+            placeholder_vars.append('DATABRICKS_TOKEN')
+        if not self.catalog or 'your_' in str(self.catalog).lower():
             missing_vars.append('DATABRICKS_CATALOG')
-        if not self.schema:
+        if not self.schema or 'your_' in str(self.schema).lower():
             missing_vars.append('DATABRICKS_SCHEMA')
         
         if missing_vars:
-            raise ValueError(
+            logger.warning(
                 f"Missing required Databricks configuration: {', '.join(missing_vars)}"
+            )
+        
+        if placeholder_vars:
+            logger.warning(
+                f"Placeholder values detected for: {', '.join(placeholder_vars)}. "
+                f"Please set actual Databricks credentials in environment variables."
             )
     
     def connect(self) -> bool:
@@ -57,6 +64,15 @@ class DatabricksConnection:
             bool: True if connection successful, False otherwise
         """
         try:
+            # Check if credentials are placeholder values
+            if 'your_' in str(self.token).lower() or 'your-' in str(self.host).lower():
+                logger.warning("Databricks credentials are placeholder values. Skipping connection.")
+                return False
+            
+            if not self.host or not self.token:
+                logger.warning("Databricks credentials not configured. Using sample data.")
+                return False
+            
             # Extract workspace name from host URL
             self.connection = connect(
                 host=self.host,
@@ -244,11 +260,15 @@ class DatabricksConnection:
         return self.fetch_dataframe(query)
 
 
-def get_databricks_connection() -> DatabricksConnection:
+def get_databricks_connection() -> Optional[DatabricksConnection]:
     """
     Factory function to create and return a Databricks connection
     
     Returns:
-        DatabricksConnection instance
+        DatabricksConnection instance or None if creation fails
     """
-    return DatabricksConnection()
+    try:
+        return DatabricksConnection()
+    except Exception as e:
+        logger.error(f"Failed to create Databricks connection: {str(e)}")
+        return None

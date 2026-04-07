@@ -282,13 +282,19 @@ def get_db_connection():
     """Get cached Databricks connection"""
     try:
         db = get_databricks_connection()
+        if db is None:
+            st.info("📊 Displaying sample data (Databricks connection unavailable)")
+            return None
         if db.connect():
             st.info("✓ Connected to Databricks")
             return db
+        else:
+            st.info("📊 Displaying sample data (Databricks connection unavailable)")
+            return None
     except Exception as e:
         st.warning(f"⚠ Databricks connection failed: {str(e)}")
-        st.info("Using sample data instead")
-    return None
+        st.info("📊 Displaying sample data (Databricks connection unavailable)")
+        return None
 
 @st.cache_data
 def load_production_data_from_databricks(db):
