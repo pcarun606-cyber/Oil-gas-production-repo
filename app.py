@@ -31,86 +31,166 @@ except Exception as e:
     logging.warning(f"Failed to import database: {e}")
     get_databricks_connection = None
 
-# Apply minimal CSS at module level (only styling, no other st. commands)
+# Apply CSS styling
 st.markdown("""
 <style>
 /* Main backgrounds */
-[data-testid="stAppViewContainer"] { background-color: #1a202c; }
-[data-testid="stSidebar"] { background-color: #0f1419; }
+[data-testid="stAppViewContainer"] { 
+    background-color: #2a2a3a; 
+}
+[data-testid="stSidebar"] { 
+    background-color: #1a1a2e;
+}
 
 /* Text colors */
-* { color: #ffffff !important; }
-body, div, p, span, label, h1, h2, h3, h4, h5, h6 { color: #ffffff !important; }
+h1, h2, h3, h4, h5, h6 { 
+    color: #ffffff !important; 
+    font-weight: 600 !important;
+}
+p, div, span, label { 
+    color: #e0e0e0 !important; 
+}
+
+/* Sidebar specific */
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3 { 
+    color: #ffffff !important;
+    font-size: 18px !important;
+}
 
 /* Metric cards */
 .stMetric { 
-    background-color: #2d3748; 
-    padding: 12px; 
-    border-radius: 8px; 
+    background-color: #3a3a4a; 
+    padding: 15px; 
+    border-radius: 6px; 
     margin: 8px 0;
+    border-left: 4px solid #00d4ff;
 }
-.stMetric label { color: #ffffff !important; }
-.stMetric [data-testid="metricDeltaContainer"] { color: #ffffff !important; }
+.stMetric label { color: #b0b0c0 !important; }
+.stMetric [data-testid="metricValue"] { color: #ffffff !important; }
 
 /* DataFrames */
-.stDataFrame { background-color: #2d3748; }
-[data-testid="stDataFrame"] { color: #ffffff; }
-.stDataFrame th { background-color: #2d3748 !important; color: #ffffff !important; }
-.stDataFrame td { background-color: #1a202c !important; color: #ffffff !important; }
+.stDataFrame { background-color: #3a3a4a; }
+[data-testid="stDataFrame"] { color: #e0e0e0; }
+.stDataFrame th { 
+    background-color: #4a4a5a !important; 
+    color: #ffffff !important; 
+    font-weight: 600 !important;
+}
+.stDataFrame td { 
+    background-color: #2a2a3a !important; 
+    color: #e0e0e0 !important; 
+}
 
 /* Buttons */
-.stButton > button { 
-    background-color: #2d3748; 
-    color: #00d4ff; 
-    border: 1px solid #00d4ff;
-    width: 100%;
+[data-testid="stSidebar"] .stButton > button { 
+    background-color: #3a3a4a !important; 
+    color: #e0e0e0 !important; 
+    border: 1px solid #4a5a6a !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+    padding: 12px 16px !important;
+    margin: 6px 0 !important;
+    width: 100% !important;
+    text-align: left !important;
+    font-size: 15px !important;
 }
-.stButton > button:hover { background-color: #404854; }
+[data-testid="stSidebar"] .stButton > button:hover { 
+    background-color: #00d4ff !important;
+    color: #1a1a2e !important;
+    border-color: #00d4ff !important;
+}
+
+/* Main content buttons */
+[data-testid="stAppViewContainer"] .stButton > button { 
+    background-color: #00d4ff !important; 
+    color: #1a1a2e !important; 
+    border: none !important;
+    border-radius: 5px !important;
+    font-weight: 600 !important;
+    padding: 10px 20px !important;
+}
+[data-testid="stAppViewContainer"] .stButton > button:hover { 
+    background-color: #00b8d4 !important;
+}
 
 /* Selectbox */
 .stSelectbox > div > div { 
-    background-color: #0f1419 !important; 
-    border: 1px solid #2d3748 !important;
+    background-color: #3a3a4a !important; 
+    border: 1px solid #4a5a6a !important;
+    border-radius: 5px !important;
 }
 .stSelectbox input { 
-    background-color: #0f1419 !important; 
+    background-color: #3a3a4a !important; 
     color: #ffffff !important;
 }
 
 /* Options */
 [role="option"] { 
-    background-color: #0f1419 !important; 
-    color: #ffffff !important; 
+    background-color: #3a3a4a !important; 
+    color: #e0e0e0 !important; 
 }
 [role="option"]:hover { 
-    background-color: #2d3748 !important; 
+    background-color: #4a5a6a !important; 
     color: #ffffff !important;
+}
+
+/* Dividers */
+.stDivider { 
+    background-color: #4a4a5a !important; 
+    margin: 20px 0 !important;
+}
+
+/* Expandable sections */
+details { color: #e0e0e0 !important; }
+details summary { 
+    color: #ffffff !important; 
+    font-weight: 600 !important;
+    cursor: pointer !important;
+}
+details summary:hover {
+    color: #00d4ff !important;
+}
+
+/* Sidebar specific styling */
+[data-testid="stSidebar"] {
+    padding: 20px 10px !important;
+}
+[data-testid="stSidebar"] h3,
+[data-testid="stSidebar"] h4 {
+    margin-top: 20px !important;
+    margin-bottom: 12px !important;
+}
+[data-testid="stSidebar"] p {
+    font-size: 14px !important;
 }
 
 /* Markdown */
-.stMarkdown { color: #ffffff !important; }
-.stMarkdown p { color: #ffffff !important; }
-.stMarkdown h1, .stMarkdown h2, .stMarkdown h3 { color: #ffffff !important; }
+.stMarkdown h1 { font-size: 2em !important; }
+.stMarkdown h2 { font-size: 1.5em !important; }
+.stMarkdown h3 { font-size: 1.2em !important; }
 
 /* Info/Warning/Success boxes */
-.stInfo, .stWarning, .stSuccess, .stError { 
-    background-color: rgba(45, 55, 72, 0.8) !important;
-    border-radius: 8px !important;
-    color: #ffffff !important;
-    padding: 12px !important;
+.stInfo { 
+    background-color: rgba(0, 148, 211, 0.15) !important;
+    border-left: 4px solid #00d4ff !important;
 }
-.stInfo p, .stWarning p, .stSuccess p, .stError p { color: #ffffff !important; }
-
-/* Dividers */
-.stDivider { color: #404854 !important; }
+.stWarning { 
+    background-color: rgba(255, 193, 7, 0.15) !important;
+    border-left: 4px solid #ffc107 !important;
+}
+.stSuccess { 
+    background-color: rgba(76, 175, 80, 0.15) !important;
+    border-left: 4px solid #4caf50 !important;
+}
+.stError { 
+    background-color: rgba(244, 67, 54, 0.15) !important;
+    border-left: 4px solid #f44336 !important;
+}
 
 /* Column containers */
 .stColumn { background-color: transparent !important; }
-
-/* Tabs */
-.stTabs [data-baseweb="tab-list"] { background-color: transparent !important; }
-.stTabs [data-baseweb="tab"] { background-color: #2d3748 !important; }
-.stTabs [aria-selected="true"] { border-bottom: 2px solid #00d4ff !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -307,17 +387,40 @@ def main():
         st.markdown("Oil & Gas Surveillance")
         st.divider()
         
+        # Page Navigation
+        st.markdown("**Select Page**")
         pages = ["Field Overview", "Well Performance", "Production Planning", "Forecast & Reserves", "Actions & Alerts"]
-        selected_page = st.selectbox("Select Page", pages)
-        st.session_state.page = selected_page
+        page_icons = ["📊", "⚡", "📈", "🔮", "⚠️"]
+        
+        for icon, page in zip(page_icons, pages):
+            if st.button(f"{icon} {page}", key=f"btn_{page}", use_container_width=True):
+                st.session_state.page = page
         
         st.divider()
-        st.button("📤 Upload New File", width='stretch')
+        
+        # Filters & Settings
+        with st.expander("⚙️ Filters & Settings"):
+            st.write("Filter options coming soon")
+        
+        # Wells Section
+        st.markdown("**WELLS**")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.button("All", use_container_width=True)
+        with col2:
+            st.button("None", use_container_width=True)
+        
+        st.divider()
+        st.button("📤 Upload New File", use_container_width=True)
     
     # PAGE: FIELD OVERVIEW
     if st.session_state.page == "Field Overview":
-        st.title("Field Overview")
-        st.write("Overview of all wells and field-level metrics")
+        col1, col2 = st.columns([4, 1])
+        with col1:
+            st.title("Field Overview")
+            st.write("Overview of all wells and field-level metrics")
+        with col2:
+            st.button("📥 Import", use_container_width=True)
         
         df_annual = load_annual_production_data(db)
         
@@ -340,7 +443,7 @@ def main():
             
             # Data table
             st.subheader(f"Annual Production - Year {latest_year}")
-            st.dataframe(df_latest, width='stretch')
+            st.dataframe(df_latest)
             
             # Efficiency analysis
             df_efficiency = load_production_efficiency_data(db)
@@ -356,12 +459,16 @@ def main():
                     if 'gas_per_injection' in df_eff_latest.columns:
                         st.metric("Avg Gas per Injection", f"{df_eff_latest['gas_per_injection'].mean():.2f}")
                 
-                st.dataframe(df_eff_latest, width='stretch')
+                st.dataframe(df_eff_latest)
     
     # PAGE: WELL PERFORMANCE
     elif st.session_state.page == "Well Performance":
-        st.title("Well Performance")
-        st.write("Detailed analysis for individual wells")
+        col1, col2 = st.columns([4, 1])
+        with col1:
+            st.title("Well Performance")
+            st.write("Detailed analysis for individual wells")
+        with col2:
+            st.button("📊 Export", use_container_width=True)
         
         df_annual = load_annual_production_data(db)
         df_water_cut = load_water_cut_analysis_data(db)
@@ -411,7 +518,7 @@ def main():
                             font=dict(color='#ffffff'),
                             hovermode='x unified'
                         )
-                        st.plotly_chart(fig, width='stretch')
+                        st.plotly_chart(fig)
                     
                     with col2:
                         fig = px.line(well_data_sorted, x='year', y='cumulative_oil',
@@ -423,7 +530,7 @@ def main():
                             font=dict(color='#ffffff'),
                             hovermode='x unified'
                         )
-                        st.plotly_chart(fig, width='stretch')
+                        st.plotly_chart(fig)
                     
                     # Production trend
                     st.subheader("Production Trend")
@@ -431,25 +538,29 @@ def main():
                                  title=f"{selected_well} - Production Over Time",
                                  markers=True)
                     fig.update_layout(plot_bgcolor='#2d3748', paper_bgcolor='#1a202c', font=dict(color='#ffffff'))
-                    st.plotly_chart(fig, width='stretch')
+                    st.plotly_chart(fig)
                     
                     # Water cut and efficiency
                     if df_water_cut is not None and not df_water_cut.empty:
                         st.subheader("Water Cut Analysis")
                         well_wc = df_water_cut[df_water_cut['wellbore_name'] == selected_well]
                         if not well_wc.empty:
-                            st.dataframe(well_wc, width='stretch')
+                            st.dataframe(well_wc)
                     
                     if df_efficiency is not None and not df_efficiency.empty:
                         st.subheader("Production Efficiency")
                         well_eff = df_efficiency[df_efficiency['wellbore_name'] == selected_well]
                         if not well_eff.empty:
-                            st.dataframe(well_eff, width='stretch')
+                            st.dataframe(well_eff)
     
     # PAGE: PRODUCTION PLANNING
     elif st.session_state.page == "Production Planning":
-        st.title("Production Planning")
-        st.write("Plan and forecast production")
+        col1, col2 = st.columns([4, 1])
+        with col1:
+            st.title("Production Planning")
+            st.write("Plan and forecast well & field level production")
+        with col2:
+            st.button("📤 Export Plan", use_container_width=True)
         
         df_annual = load_annual_production_data(db)
         df_optimization = load_optimization_candidates_data(db)
@@ -477,7 +588,7 @@ def main():
                 fig.update_layout(title="Production Plan - Rate Trend", height=400,
                                  plot_bgcolor='#2d3748', paper_bgcolor='#1a202c',
                                  font=dict(color='#ffffff'), hovermode='x unified')
-                st.plotly_chart(fig, width='stretch')
+                st.plotly_chart(fig)
             
             with col2:
                 fig = go.Figure()
@@ -487,7 +598,7 @@ def main():
                 fig.update_layout(title="Cumulative Production Plan", height=400,
                                  plot_bgcolor='#2d3748', paper_bgcolor='#1a202c',
                                  font=dict(color='#ffffff'), hovermode='x unified')
-                st.plotly_chart(fig, width='stretch')
+                st.plotly_chart(fig)
             
             # Optimization candidates
             st.subheader("Well Optimization Candidates")
@@ -497,14 +608,18 @@ def main():
                                            (df_optimization['optimization_candidate'] == 'YES')]
                 if not opt_wells.empty:
                     st.info(f"Found {len(opt_wells)} optimization candidates")
-                    st.dataframe(opt_wells, width='stretch')
+                    st.dataframe(opt_wells)
                 else:
                     st.info("No optimization candidates at this time")
     
     # PAGE: FORECAST & RESERVES
     elif st.session_state.page == "Forecast & Reserves":
-        st.title("Forecast & Reserves")
-        st.write("Reserve estimates and production forecasts")
+        col1, col2 = st.columns([4, 1])
+        with col1:
+            st.title("Forecast & Reserves")
+            st.write("Reserve estimates and production forecasts")
+        with col2:
+            st.button("📋 Report", use_container_width=True)
         
         df_annual = load_annual_production_data(db)
         
@@ -518,7 +633,7 @@ def main():
                 st.metric("Cumulative Water", f"{df_annual['water'].sum():,.0f} Sm³")
             
             st.subheader("Historical Production Data")
-            st.dataframe(df_annual, width='stretch')
+            st.dataframe(df_annual)
             
             # Production trend
             if 'year' in df_annual.columns:
@@ -527,12 +642,16 @@ def main():
                             title="Yearly Production Summary",
                             labels={'value': 'Production (Sm³)', 'year': 'Year'})
                 fig.update_layout(plot_bgcolor='#2d3748', paper_bgcolor='#1a202c', font=dict(color='#ffffff'))
-                st.plotly_chart(fig, width='stretch')
+                st.plotly_chart(fig)
     
     # PAGE: ACTIONS & ALERTS
     elif st.session_state.page == "Actions & Alerts":
-        st.title("Actions & Alerts")
-        st.write("Critical actions and alerts")
+        col1, col2 = st.columns([4, 1])
+        with col1:
+            st.title("Actions & Alerts")
+            st.write("Critical actions and alerts")
+        with col2:
+            st.button("🔔 Notify", use_container_width=True)
         
         df_water_cut = load_water_cut_analysis_data(db)
         df_optimization = load_optimization_candidates_data(db)
@@ -543,7 +662,7 @@ def main():
             high_water = df_water_cut[df_water_cut['water_cut_pct'] > 50]
             if not high_water.empty:
                 st.warning(f"Found {len(high_water)} wells with high water cut")
-                st.dataframe(high_water, width='stretch')
+                st.dataframe(high_water)
             else:
                 st.success("No high water cut alerts")
         
@@ -553,7 +672,7 @@ def main():
             opt_wells = df_optimization[df_optimization['optimization_candidate'] == 'YES']
             if not opt_wells.empty:
                 st.info(f"Found {len(opt_wells)} optimization candidates")
-                st.dataframe(opt_wells, width='stretch')
+                st.dataframe(opt_wells)
             else:
                 st.info("No optimization candidates")
         
@@ -564,7 +683,7 @@ def main():
             'Action': ['GOLD tables updated', 'Water cut analysis completed', 'Optimization analysis completed'],
             'Status': ['Completed', 'Completed', 'Completed']
         })
-        st.dataframe(actions, width='stretch', hide_index=True)
+        st.dataframe(actions, hide_index=True)
 
 # RUN APP WITH ERROR HANDLING
 try:
