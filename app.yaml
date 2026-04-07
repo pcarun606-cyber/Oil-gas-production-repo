@@ -1,15 +1,9 @@
 command:
-  - streamlit
-  - run
-  - app.py
+  - sh
+  - -c
+  - streamlit run app.py --server.port $DATABRICKS_APP_PORT --server.address 0.0.0.0 --server.headless true
 
 env:
-  - name: STREAMLIT_SERVER_PORT
-    value: "8501"
-  - name: STREAMLIT_SERVER_ADDRESS
-    value: "0.0.0.0"
-  - name: STREAMLIT_SERVER_HEADLESS
-    value: "true"
   - name: STREAMLIT_SERVER_RUN_ON_SAVE
     value: "false"
   - name: STREAMLIT_SERVER_MAX_UPLOAD_SIZE
@@ -28,13 +22,11 @@ env:
     value: "#1a202c"
   - name: STREAMLIT_THEME_TEXT_COLOR
     value: "#ffffff"
-  - name: DATABRICKS_HOST
-    value: "{{DATABRICKS_HOST}}"
-  - name: DATABRICKS_REDACTED_SECRET
+  - name: DATABRICKS_TOKEN
     valueFrom: databricks-token
+  - name: DATABRICKS_WAREHOUSE_ID
+    valueFrom: sql-warehouse
   - name: DATABRICKS_CATALOG
     value: "oilgasproduction"
   - name: DATABRICKS_SCHEMA
     value: "oilgasproductionschema"
-  - name: DATABRICKS_CLUSTER_ID
-    value: "oilgascluster"
