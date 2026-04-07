@@ -34,16 +34,83 @@ except Exception as e:
 # Apply minimal CSS at module level (only styling, no other st. commands)
 st.markdown("""
 <style>
+/* Main backgrounds */
 [data-testid="stAppViewContainer"] { background-color: #1a202c; }
 [data-testid="stSidebar"] { background-color: #0f1419; }
+
+/* Text colors */
 * { color: #ffffff !important; }
 body, div, p, span, label, h1, h2, h3, h4, h5, h6 { color: #ffffff !important; }
-.stMetric { background-color: #2d3748; padding: 12px; border-radius: 8px; margin: 8px 0; }
+
+/* Metric cards */
+.stMetric { 
+    background-color: #2d3748; 
+    padding: 12px; 
+    border-radius: 8px; 
+    margin: 8px 0;
+}
+.stMetric label { color: #ffffff !important; }
+.stMetric [data-testid="metricDeltaContainer"] { color: #ffffff !important; }
+
+/* DataFrames */
 .stDataFrame { background-color: #2d3748; }
-.stButton > button { background-color: #2d3748; color: #00d4ff; border: 1px solid #00d4ff; }
-.stSelectbox > div > div { background-color: #0f1419 !important; border: 1px solid #2d3748 !important; }
-[role="option"] { background-color: #0f1419 !important; color: #ffffff !important; }
-[role="option"]:hover { background-color: #2d3748 !important; }
+[data-testid="stDataFrame"] { color: #ffffff; }
+.stDataFrame th { background-color: #2d3748 !important; color: #ffffff !important; }
+.stDataFrame td { background-color: #1a202c !important; color: #ffffff !important; }
+
+/* Buttons */
+.stButton > button { 
+    background-color: #2d3748; 
+    color: #00d4ff; 
+    border: 1px solid #00d4ff;
+    width: 100%;
+}
+.stButton > button:hover { background-color: #404854; }
+
+/* Selectbox */
+.stSelectbox > div > div { 
+    background-color: #0f1419 !important; 
+    border: 1px solid #2d3748 !important;
+}
+.stSelectbox input { 
+    background-color: #0f1419 !important; 
+    color: #ffffff !important;
+}
+
+/* Options */
+[role="option"] { 
+    background-color: #0f1419 !important; 
+    color: #ffffff !important; 
+}
+[role="option"]:hover { 
+    background-color: #2d3748 !important; 
+    color: #ffffff !important;
+}
+
+/* Markdown */
+.stMarkdown { color: #ffffff !important; }
+.stMarkdown p { color: #ffffff !important; }
+.stMarkdown h1, .stMarkdown h2, .stMarkdown h3 { color: #ffffff !important; }
+
+/* Info/Warning/Success boxes */
+.stInfo, .stWarning, .stSuccess, .stError { 
+    background-color: rgba(45, 55, 72, 0.8) !important;
+    border-radius: 8px !important;
+    color: #ffffff !important;
+    padding: 12px !important;
+}
+.stInfo p, .stWarning p, .stSuccess p, .stError p { color: #ffffff !important; }
+
+/* Dividers */
+.stDivider { color: #404854 !important; }
+
+/* Column containers */
+.stColumn { background-color: transparent !important; }
+
+/* Tabs */
+.stTabs [data-baseweb="tab-list"] { background-color: transparent !important; }
+.stTabs [data-baseweb="tab"] { background-color: #2d3748 !important; }
+.stTabs [aria-selected="true"] { border-bottom: 2px solid #00d4ff !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -500,10 +567,9 @@ def main():
         st.dataframe(actions, width='stretch', hide_index=True)
 
 # RUN APP WITH ERROR HANDLING
-if __name__ == "__main__":
-    try:
-        main()
-    except Exception as e:
-        st.error(f"❌ Application Error: {str(e)}")
-        st.info("Please try refreshing the page or restarting the application")
-        logging.error(f"Critical app error: {e}", exc_info=True)
+try:
+    main()
+except Exception as e:
+    st.error(f"❌ Application Error: {str(e)}")
+    st.info("Please try refreshing the page or restarting the application")
+    logging.error(f"Critical app error: {e}", exc_info=True)
