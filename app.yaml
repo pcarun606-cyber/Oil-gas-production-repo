@@ -1,16 +1,25 @@
 command:
-  - python
+  - streamlit
+  - run
   - app.py
 
 env:
   - name: STREAMLIT_SERVER_PORT
     value: "8501"
   - name: STREAMLIT_SERVER_ADDRESS
-    value: "localhost"
+    value: "0.0.0.0"
+  - name: STREAMLIT_SERVER_HEADLESS
+    value: "true"
+  - name: STREAMLIT_SERVER_RUN_ON_SAVE
+    value: "false"
+  - name: STREAMLIT_SERVER_MAX_UPLOAD_SIZE
+    value: "200"
   - name: STREAMLIT_LOGGER_LEVEL
     value: "info"
   - name: STREAMLIT_CLIENT_TOOLBAR_MODE
     value: "viewer"
+  - name: STREAMLIT_CLIENT_SHOW_ERROR_DETAILS
+    value: "true"
   - name: STREAMLIT_THEME_PRIMARY_COLOR
     value: "#00d4ff"
   - name: STREAMLIT_THEME_BACKGROUND_COLOR
