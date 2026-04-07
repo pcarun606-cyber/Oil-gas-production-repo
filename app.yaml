@@ -30,7 +30,7 @@ env:
     value: "#ffffff"
   - name: DATABRICKS_HOST
     value: "{{DATABRICKS_HOST}}"
-  - name: DATABRICKS_TOKEN
+  - name: DATABRICKS_REDACTED_SECRET
     valueFrom: "databricks-token"
   - name: DATABRICKS_CATALOG
     value: "oilgasproduction"
