@@ -283,23 +283,21 @@ st.markdown("""
 # Initialize Databricks connection
 @st.cache_resource
 def get_db_connection():
-    """Get cached Databricks connection"""
+    """Get cached Databricks connection - no Streamlit output during init"""
     try:
         if get_databricks_connection is None:
             return None
         db = get_databricks_connection()
         if db is None:
-            st.info("📊 Displaying sample data (Databricks connection unavailable)")
             return None
         if db.connect():
-            st.info("✓ Connected to Databricks")
             return db
         else:
-            st.info("📊 Displaying sample data (Databricks connection unavailable)")
             return None
     except Exception as e:
-        st.warning(f"⚠ Databricks connection failed: {str(e)}")
-        st.info("📊 Displaying sample data (Databricks connection unavailable)")
+        # Log but don't display during cache initialization
+        import logging
+        logging.error(f"Databricks connection error: {str(e)}")
         return None
 
 @st.cache_data
@@ -543,42 +541,58 @@ def generate_variance_data():
 @st.cache_data
 def load_annual_production_data_with_fallback(db):
     """Load GOLD TABLE 1 with fallback to sample data"""
-    if db:
-        try:
-            return db.get_annual_production_data()
-        except Exception as e:
-            st.warning(f"Could not load annual production from Databricks: {str(e)}")
-    return generate_sample_annual_production_data()
+    try:
+        if db:
+            try:
+                return db.get_annual_production_data()
+            except Exception as e:
+                logging.warning(f"Could not load annual production from Databricks: {str(e)}")
+        return generate_sample_annual_production_data()
+    except Exception as e:
+        logging.error(f"Error in load_annual_production_data_with_fallback: {str(e)}")
+        return pd.DataFrame({'wellbore_name': ['Well 1'], 'year': [2026], 'oil': [1000]})
 
 @st.cache_data
 def load_production_efficiency_data_with_fallback(db):
     """Load GOLD TABLE 2 with fallback to sample data"""
-    if db:
-        try:
-            return db.get_production_efficiency_data()
-        except Exception as e:
-            st.warning(f"Could not load efficiency data from Databricks: {str(e)}")
-    return generate_sample_production_efficiency_data()
+    try:
+        if db:
+            try:
+                return db.get_production_efficiency_data()
+            except Exception as e:
+                logging.warning(f"Could not load efficiency data from Databricks: {str(e)}")
+        return generate_sample_production_efficiency_data()
+    except Exception as e:
+        logging.error(f"Error in load_production_efficiency_data_with_fallback: {str(e)}")
+        return pd.DataFrame()
 
 @st.cache_data
 def load_water_cut_analysis_data_with_fallback(db):
     """Load GOLD TABLE 3 with fallback to sample data"""
-    if db:
-        try:
-            return db.get_water_cut_analysis_data()
-        except Exception as e:
-            st.warning(f"Could not load water cut data from Databricks: {str(e)}")
-    return generate_sample_water_cut_analysis_data()
+    try:
+        if db:
+            try:
+                return db.get_water_cut_analysis_data()
+            except Exception as e:
+                logging.warning(f"Could not load water cut data from Databricks: {str(e)}")
+        return generate_sample_water_cut_analysis_data()
+    except Exception as e:
+        logging.error(f"Error in load_water_cut_analysis_data_with_fallback: {str(e)}")
+        return pd.DataFrame()
 
 @st.cache_data
 def load_optimization_candidates_data_with_fallback(db):
     """Load GOLD TABLE 4 with fallback to sample data"""
-    if db:
-        try:
-            return db.get_optimization_candidates_data()
-        except Exception as e:
-            st.warning(f"Could not load optimization data from Databricks: {str(e)}")
-    return generate_sample_optimization_candidates_data()
+    try:
+        if db:
+            try:
+                return db.get_optimization_candidates_data()
+            except Exception as e:
+                logging.warning(f"Could not load optimization data from Databricks: {str(e)}")
+        return generate_sample_optimization_candidates_data()
+    except Exception as e:
+        logging.error(f"Error in load_optimization_candidates_data_with_fallback: {str(e)}")
+        return pd.DataFrame()
 
 # Generate sample data
     """Generate sample production plan data"""
@@ -689,6 +703,10 @@ with st.sidebar:
 # Main content area
 # Get Databricks connection
 db = get_db_connection()
+
+# Display connection status (after cache initialization)
+if db is None:
+    st.info("📊 Displaying sample data (Databricks connection unavailable)")
 
 if st.session_state.page == "Field Overview":
     st.title("Field Overview")
