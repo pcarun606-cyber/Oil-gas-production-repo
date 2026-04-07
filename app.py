@@ -245,7 +245,7 @@ def main():
         st.session_state.page = selected_page
         
         st.divider()
-        st.button("📤 Upload New File", use_container_width=True)
+        st.button("📤 Upload New File", width='stretch')
     
     # PAGE: FIELD OVERVIEW
     if st.session_state.page == "Field Overview":
@@ -273,7 +273,7 @@ def main():
             
             # Data table
             st.subheader(f"Annual Production - Year {latest_year}")
-            st.dataframe(df_latest, use_container_width=True)
+            st.dataframe(df_latest, width='stretch')
             
             # Efficiency analysis
             df_efficiency = load_production_efficiency_data(db)
@@ -289,7 +289,7 @@ def main():
                     if 'gas_per_injection' in df_eff_latest.columns:
                         st.metric("Avg Gas per Injection", f"{df_eff_latest['gas_per_injection'].mean():.2f}")
                 
-                st.dataframe(df_eff_latest, use_container_width=True)
+                st.dataframe(df_eff_latest, width='stretch')
     
     # PAGE: WELL PERFORMANCE
     elif st.session_state.page == "Well Performance":
@@ -344,7 +344,7 @@ def main():
                             font=dict(color='#ffffff'),
                             hovermode='x unified'
                         )
-                        st.plotly_chart(fig, use_container_width=True)
+                        st.plotly_chart(fig, width='stretch')
                     
                     with col2:
                         fig = px.line(well_data_sorted, x='year', y='cumulative_oil',
@@ -356,7 +356,7 @@ def main():
                             font=dict(color='#ffffff'),
                             hovermode='x unified'
                         )
-                        st.plotly_chart(fig, use_container_width=True)
+                        st.plotly_chart(fig, width='stretch')
                     
                     # Production trend
                     st.subheader("Production Trend")
@@ -364,20 +364,20 @@ def main():
                                  title=f"{selected_well} - Production Over Time",
                                  markers=True)
                     fig.update_layout(plot_bgcolor='#2d3748', paper_bgcolor='#1a202c', font=dict(color='#ffffff'))
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig, width='stretch')
                     
                     # Water cut and efficiency
                     if df_water_cut is not None and not df_water_cut.empty:
                         st.subheader("Water Cut Analysis")
                         well_wc = df_water_cut[df_water_cut['wellbore_name'] == selected_well]
                         if not well_wc.empty:
-                            st.dataframe(well_wc, use_container_width=True)
+                            st.dataframe(well_wc, width='stretch')
                     
                     if df_efficiency is not None and not df_efficiency.empty:
                         st.subheader("Production Efficiency")
                         well_eff = df_efficiency[df_efficiency['wellbore_name'] == selected_well]
                         if not well_eff.empty:
-                            st.dataframe(well_eff, use_container_width=True)
+                            st.dataframe(well_eff, width='stretch')
     
     # PAGE: PRODUCTION PLANNING
     elif st.session_state.page == "Production Planning":
@@ -410,7 +410,7 @@ def main():
                 fig.update_layout(title="Production Plan - Rate Trend", height=400,
                                  plot_bgcolor='#2d3748', paper_bgcolor='#1a202c',
                                  font=dict(color='#ffffff'), hovermode='x unified')
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width='stretch')
             
             with col2:
                 fig = go.Figure()
@@ -420,7 +420,7 @@ def main():
                 fig.update_layout(title="Cumulative Production Plan", height=400,
                                  plot_bgcolor='#2d3748', paper_bgcolor='#1a202c',
                                  font=dict(color='#ffffff'), hovermode='x unified')
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width='stretch')
             
             # Optimization candidates
             st.subheader("Well Optimization Candidates")
@@ -430,7 +430,7 @@ def main():
                                            (df_optimization['optimization_candidate'] == 'YES')]
                 if not opt_wells.empty:
                     st.info(f"Found {len(opt_wells)} optimization candidates")
-                    st.dataframe(opt_wells, use_container_width=True)
+                    st.dataframe(opt_wells, width='stretch')
                 else:
                     st.info("No optimization candidates at this time")
     
@@ -451,7 +451,7 @@ def main():
                 st.metric("Cumulative Water", f"{df_annual['water'].sum():,.0f} Sm³")
             
             st.subheader("Historical Production Data")
-            st.dataframe(df_annual, use_container_width=True)
+            st.dataframe(df_annual, width='stretch')
             
             # Production trend
             if 'year' in df_annual.columns:
@@ -460,7 +460,7 @@ def main():
                             title="Yearly Production Summary",
                             labels={'value': 'Production (Sm³)', 'year': 'Year'})
                 fig.update_layout(plot_bgcolor='#2d3748', paper_bgcolor='#1a202c', font=dict(color='#ffffff'))
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width='stretch')
     
     # PAGE: ACTIONS & ALERTS
     elif st.session_state.page == "Actions & Alerts":
@@ -476,7 +476,7 @@ def main():
             high_water = df_water_cut[df_water_cut['water_cut_pct'] > 50]
             if not high_water.empty:
                 st.warning(f"Found {len(high_water)} wells with high water cut")
-                st.dataframe(high_water, use_container_width=True)
+                st.dataframe(high_water, width='stretch')
             else:
                 st.success("No high water cut alerts")
         
@@ -486,7 +486,7 @@ def main():
             opt_wells = df_optimization[df_optimization['optimization_candidate'] == 'YES']
             if not opt_wells.empty:
                 st.info(f"Found {len(opt_wells)} optimization candidates")
-                st.dataframe(opt_wells, use_container_width=True)
+                st.dataframe(opt_wells, width='stretch')
             else:
                 st.info("No optimization candidates")
         
@@ -497,7 +497,7 @@ def main():
             'Action': ['GOLD tables updated', 'Water cut analysis completed', 'Optimization analysis completed'],
             'Status': ['Completed', 'Completed', 'Completed']
         })
-        st.dataframe(actions, use_container_width=True, hide_index=True)
+        st.dataframe(actions, width='stretch', hide_index=True)
 
 # RUN APP WITH ERROR HANDLING
 if __name__ == "__main__":
