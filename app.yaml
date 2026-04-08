@@ -27,6 +27,6 @@ env:
   - name: DATABRICKS_WAREHOUSE_ID
     valueFrom: sql-warehouse
   - name: DATABRICKS_CATALOG
-    value: "oilgasproduction"
+    value: "databricks_course_ws"
   - name: DATABRICKS_SCHEMA
     value: "oilgasproductionschema"

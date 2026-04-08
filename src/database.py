@@ -7,9 +7,19 @@ import logging
 from typing import Optional, List, Dict, Any
 import pandas as pd
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+# Configure logging with detailed format to show API calls
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s | %(name)s | %(levelname)s | %(message)s'
+)
 logger = logging.getLogger(__name__)
+
+# Enable debug logging for Databricks SQL connector
+logging.getLogger('databricks.sql').setLevel(logging.DEBUG)
+logging.getLogger('databricks.sql.auth').setLevel(logging.DEBUG)
+logging.getLogger('databricks.sql.session').setLevel(logging.DEBUG)
+logging.getLogger('databricks.sql.client').setLevel(logging.DEBUG)
+logging.getLogger('databricks.sql.backend').setLevel(logging.DEBUG)
 
 # Try to import Databricks SQL connector, but allow graceful failure
 try:
@@ -43,6 +53,13 @@ class DatabricksConnection:
         """Validate that all required Databricks configuration is set"""
         missing_vars = []
         
+        logger.info("🔍 Validating Databricks configuration...")
+        logger.info(f"  HOST: {'✅' if self.host and 'your-workspace' not in str(self.host).lower() else '❌'} {self.host[:30] if self.host else 'NOT SET'}...")
+        logger.info(f"  TOKEN: {'✅' if self.token and 'your_databricks' not in str(self.token).lower() else '❌'} {self.token[:10] if self.token else 'NOT SET'}...")
+        logger.info(f"  CATALOG: {'✅' if self.catalog and 'your_' not in str(self.catalog).lower() else '❌'} {self.catalog if self.catalog else 'NOT SET'}")
+        logger.info(f"  SCHEMA: {'✅' if self.schema and 'your_' not in str(self.schema).lower() else '❌'} {self.schema if self.schema else 'NOT SET'}")
+        logger.info(f"  WAREHOUSE_ID: {'✅' if self.warehouse_id else '❌'} {self.warehouse_id if self.warehouse_id else 'NOT SET'}")
+        
         if not self.host or 'your-workspace' in str(self.host).lower():
             missing_vars.append('DATABRICKS_HOST')
         if not self.token or 'your_databricks' in str(self.token).lower():
@@ -58,6 +75,8 @@ class DatabricksConnection:
             logger.warning(
                 f"Missing required Databricks configuration: {', '.join(missing_vars)}"
             )
+        else:
+            logger.info("✅ All Databricks configuration variables are set")
     
     def connect(self) -> bool:
         """
@@ -72,7 +91,13 @@ class DatabricksConnection:
                 logger.warning("Databricks SQL connector not installed. Using sample data.")
                 return False
             
+            logger.info("=" * 80)
+            logger.info("🔌 DATABRICKS CONNECTION ATTEMPT")
+            logger.info("=" * 80)
+            logger.info(f"Attempting Databricks connection with host: {self.host}")
+            
             if not self.host or not self.token:
+                logger.warning(f"Missing credentials - Host: {bool(self.host)}, Token: {bool(self.token)}")
                 logger.warning("Databricks credentials not configured. Using sample data.")
                 return False
             
@@ -82,16 +107,33 @@ class DatabricksConnection:
             
             # Use SQL warehouse HTTP path
             http_path = f"/sql/1.0/warehouses/{self.warehouse_id}"
+            server_hostname = self.host.replace("https://", "").rstrip("/")
             
+            logger.info("🔧 Connection Configuration:")
+            logger.info(f"  Server Hostname: {server_hostname}")
+            logger.info(f"  HTTP Path: {http_path}")
+            logger.info(f"  Catalog: {self.catalog}")
+            logger.info(f"  Schema: {self.schema}")
+            logger.info(f"  Warehouse ID: {self.warehouse_id}")
+            logger.info(f"  Token: {self.token[:10]}...{self.token[-5:]}")
+            
+            logger.info("📡 Initiating HTTP connection to Databricks...")
             self.connection = connect(
-                server_hostname=self.host.replace("https://", "").rstrip("/"),
+                server_hostname=server_hostname,
                 http_path=http_path,
                 access_token=self.token
             )
-            logger.info("Successfully connected to Databricks")
+            logger.info("=" * 80)
+            logger.info("✅ Successfully connected to Databricks SQL Warehouse")
+            logger.info("=" * 80)
             return True
         except Exception as e:
-            logger.error(f"Failed to connect to Databricks: {str(e)}")
+            logger.error("=" * 80)
+            logger.error(f"❌ Failed to connect to Databricks: {str(e)}")
+            logger.error(f"Exception type: {type(e).__name__}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            logger.error("=" * 80)
             return False
     
     def disconnect(self) -> None:
@@ -140,26 +182,93 @@ class DatabricksConnection:
             pandas DataFrame with query results
         """
         if not self.connection:
+            logger.info("No cached connection, attempting to create one...")
             if not self.connect():
                 raise ConnectionError("Failed to establish Databricks connection")
         
         try:
+            # Log the full query with parameters
+            logger.info("=" * 80)
+            logger.info("🔄 SQL QUERY EXECUTION")
+            logger.info("=" * 80)
+            logger.info(f"CATALOG: {self.catalog}")
+            logger.info(f"SCHEMA: {self.schema}")
+            logger.info(f"SQL QUERY:\n{query}")
+            if params:
+                logger.info(f"PARAMETERS: {params}")
+            logger.info("=" * 80)
+            
             cursor = self.connection.cursor()
+            logger.info("📤 Sending query to Databricks SQL Warehouse...")
             cursor.execute(query, params)
+            logger.info("✅ Query executed successfully")
             
             # Get column names from cursor description
             columns = [desc[0] for desc in cursor.description]
+            logger.info(f"📊 Result columns: {columns}")
             
             # Fetch all results
+            logger.info("📥 Fetching results from Databricks...")
             results = cursor.fetchall()
             cursor.close()
             
             # Create DataFrame
             df = pd.DataFrame(results, columns=columns)
-            logger.info(f"Fetched {len(df)} rows from Databricks")
+            logger.info(f"✅ Successfully fetched {len(df)} raw rows from Databricks")
+            logger.info(f"DataFrame shape: {df.shape}")
+            
+            # Data quality check BEFORE filtering
+            if len(df) > 0:
+                null_counts = df.isnull().sum()
+                null_summary = {col: int(count) for col, count in null_counts.items() if count > 0}
+                if null_summary:
+                    logger.warning(f"⚠️ NULL values detected in raw data:")
+                    for col, count in null_summary.items():
+                        logger.warning(f"   {col}: {count}/{len(df)} rows are NULL ({count/len(df)*100:.1f}%)")
+            
+            # Filter out rows where key columns are NULL or contain string 'nan'
+            # First, replace string 'nan' with actual NaN for all columns
+            df = df.replace({'nan': None})
+            for col in df.columns:
+                if df[col].dtype == 'object':
+                    df[col] = df[col].apply(lambda x: None if isinstance(x, str) and x.lower() == 'nan' else x)
+            
+            # Identify key columns (usually the first text column and numeric columns)
+            key_columns = []
+            for col in columns:
+                if col.lower() in ['wellbore_name', 'well_name', 'well_id', 'name', 'id', 'wellbore']:
+                    key_columns.append(col)
+            
+            if key_columns:
+                logger.info(f"🔍 Filtering out NULL/missing rows using key columns: {key_columns}")
+                df_before = len(df)
+                df = df.dropna(subset=key_columns)
+                df_after = len(df)
+                logger.info(f"📊 Filtered from {df_before} rows to {df_after} valid rows (removed {df_before - df_after} NULL/missing rows)")
+            else:
+                # If no key columns found, drop rows where all values are NULL
+                logger.info(f"🔍 Filtering out completely empty rows")
+                df_before = len(df)
+                df = df.dropna(how='all')
+                df_after = len(df)
+                logger.info(f"📊 Filtered from {df_before} rows to {df_after} valid rows (removed {df_before - df_after} empty rows)")
+            
+            # Show first valid row if available
+            if len(df) > 0:
+                logger.info(f"✅ First valid row sample: {df.head(1).to_dict('records')}")
+            else:
+                logger.warning(f"⚠️ No valid rows found after filtering!")
+                logger.warning(f"Original data had {df_before} rows but all were NULL/empty")
+            
+            logger.info("=" * 80)
             return df
         except Exception as e:
-            logger.error(f"DataFrame fetch error: {str(e)}")
+            logger.error("=" * 80)
+            logger.error(f"❌ DataFrame fetch error: {str(e)}")
+            logger.error(f"Exception type: {type(e).__name__}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            logger.error("=" * 80)
             raise
     
     def get_production_data(self, well_name: Optional[str] = None) -> pd.DataFrame:
@@ -182,22 +291,30 @@ class DatabricksConnection:
     
     def get_annual_production_data(self) -> pd.DataFrame:
         """Fetch GOLD TABLE 1 - Annual production"""
-        query = f"SELECT * FROM {self.catalog}.{self.schema}.gold_well_annual_production ORDER BY year DESC, wellbore_name"
+        table_name = f"{self.catalog}.{self.schema}.gold_well_annual_production"
+        logger.info(f"📊 Fetching GOLD TABLE 1: gold_well_annual_production")
+        query = f"SELECT * FROM {table_name} ORDER BY year DESC, wellbore_name"
         return self.fetch_dataframe(query)
     
     def get_production_efficiency_data(self) -> pd.DataFrame:
         """Fetch GOLD TABLE 2 - Production efficiency"""
-        query = f"SELECT * FROM {self.catalog}.{self.schema}.gold_well_production_efficiency ORDER BY year DESC, wellbore_name"
+        table_name = f"{self.catalog}.{self.schema}.gold_well_production_efficiency"
+        logger.info(f"⚡ Fetching GOLD TABLE 2: gold_well_production_efficiency")
+        query = f"SELECT * FROM {table_name} ORDER BY year DESC, wellbore_name"
         return self.fetch_dataframe(query)
     
     def get_water_cut_analysis_data(self) -> pd.DataFrame:
         """Fetch GOLD TABLE 3 - Water cut analysis"""
-        query = f"SELECT * FROM {self.catalog}.{self.schema}.gold_well_water_cut_analysis ORDER BY year DESC, wellbore_name"
+        table_name = f"{self.catalog}.{self.schema}.gold_well_water_cut_analysis"
+        logger.info(f"💧 Fetching GOLD TABLE 3: gold_well_water_cut_analysis")
+        query = f"SELECT * FROM {table_name} ORDER BY year DESC, wellbore_name"
         return self.fetch_dataframe(query)
     
     def get_optimization_candidates_data(self) -> pd.DataFrame:
         """Fetch GOLD TABLE 4 - Optimization candidates"""
-        query = f"SELECT * FROM {self.catalog}.{self.schema}.gold_well_optimization_candidates ORDER BY year DESC, wellbore_name"
+        table_name = f"{self.catalog}.{self.schema}.gold_well_optimization_candidates"
+        logger.info(f"🎯 Fetching GOLD TABLE 4: gold_well_optimization_candidates")
+        query = f"SELECT * FROM {table_name} ORDER BY year DESC, wellbore_name"
         return self.fetch_dataframe(query)
 
 

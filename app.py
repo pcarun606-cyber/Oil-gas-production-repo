@@ -1,3 +1,12 @@
+# Load environment variables from .env file (for local development)
+# In Databricks Apps, environment variables are set via app.yaml configuration
+from dotenv import load_dotenv
+import os
+try:
+    load_dotenv(os.path.join(os.path.dirname(__file__), '.env'), override=False)
+except Exception:
+    pass  # .env file not found - OK for production (uses Databricks env vars)
+
 import streamlit as st
 
 # CRITICAL: set_page_config MUST be first streamlit command
@@ -423,30 +432,38 @@ def main():
             st.button("📥 Import", use_container_width=True)
         
         df_annual = load_annual_production_data(db)
+        df_water_cut = load_water_cut_analysis_data(db)
+        df_efficiency = load_production_efficiency_data(db)
         
-        if df_annual is not None and not df_annual.empty:
-            latest_year = df_annual['year'].max() if 'year' in df_annual.columns else 2026
-            df_latest = df_annual[df_annual['year'] == latest_year]
+        # Use data that has wells (water_cut or efficiency have real data if annual is empty)
+        df_for_metrics = df_annual if (df_annual is not None and not df_annual.empty) else (df_efficiency if (df_efficiency is not None and not df_efficiency.empty) else df_water_cut)
+        
+        if df_for_metrics is not None and not df_for_metrics.empty:
+            latest_year = df_for_metrics['year'].max() if 'year' in df_for_metrics.columns else 2026
+            df_latest = df_for_metrics[df_for_metrics['year'] == latest_year]
             
             # Metrics
             col1, col2, col3, col4, col5 = st.columns(5)
             with col1:
-                st.metric("Total Oil (Sm³)", f"{df_latest['oil'].sum():,.0f}")
+                oil_total = df_latest['oil'].sum() if 'oil' in df_latest.columns else 0
+                st.metric("Total Oil (Sm³)", f"{oil_total:,.0f}")
             with col2:
-                st.metric("Total Gas (Sm³)", f"{df_latest['gas'].sum():,.0f}")
+                gas_total = df_latest['gas'].sum() if 'gas' in df_latest.columns else 0
+                st.metric("Total Gas (Sm³)", f"{gas_total:,.0f}")
             with col3:
-                st.metric("Total Water (Sm³)", f"{df_latest['water'].sum():,.0f}")
+                water_total = df_latest['water'].sum() if 'water' in df_latest.columns else 0
+                st.metric("Total Water (Sm³)", f"{water_total:,.0f}")
             with col4:
-                st.metric("Total Fluids (Sm³)", f"{(df_latest['oil'].sum() + df_latest['water'].sum()):,.0f}")
+                fluids_total = (df_latest.get('oil', 0).sum() if 'oil' in df_latest.columns else 0) + (df_latest.get('water', 0).sum() if 'water' in df_latest.columns else 0)
+                st.metric("Total Fluids (Sm³)", f"{fluids_total:,.0f}")
             with col5:
                 st.metric("Active Wells", len(df_latest))
             
             # Data table
-            st.subheader(f"Annual Production - Year {latest_year}")
+            st.subheader(f"Production Data - Year {latest_year}")
             st.dataframe(df_latest)
             
             # Efficiency analysis
-            df_efficiency = load_production_efficiency_data(db)
             if df_efficiency is not None and not df_efficiency.empty:
                 st.subheader("Production Efficiency Analysis")
                 df_eff_latest = df_efficiency[df_efficiency['year'] == latest_year]
@@ -474,8 +491,11 @@ def main():
         df_water_cut = load_water_cut_analysis_data(db)
         df_efficiency = load_production_efficiency_data(db)
         
-        if df_annual is not None and not df_annual.empty:
-            wells = sorted(df_annual['wellbore_name'].unique().astype(str).tolist()) if 'wellbore_name' in df_annual.columns else []
+        # Use data that has wells (water_cut or efficiency have real data)
+        df_for_wells = df_water_cut if (df_water_cut is not None and not df_water_cut.empty) else df_efficiency
+        
+        if df_for_wells is not None and not df_for_wells.empty:
+            wells = sorted(df_for_wells['wellbore_name'].unique().astype(str).tolist()) if 'wellbore_name' in df_for_wells.columns else []
             
             col1, col2 = st.columns([3, 1])
             with col1:
@@ -484,35 +504,69 @@ def main():
                 st.button("Export")
             
             if selected_well and selected_well != "No data" and wells:
-                well_data = df_annual[df_annual['wellbore_name'] == selected_well]
+                # Use efficiency data which has all the needed columns
+                well_data = df_efficiency[df_efficiency['wellbore_name'] == selected_well] if df_efficiency is not None and not df_efficiency.empty else pd.DataFrame()
+                
+                if well_data.empty and df_water_cut is not None and not df_water_cut.empty:
+                    # Fallback to water cut if efficiency is empty
+                    well_data = df_water_cut[df_water_cut['wellbore_name'] == selected_well]
                 
                 if not well_data.empty:
                     latest = well_data[well_data['year'] == well_data['year'].max()].iloc[0]
                     
+                    # Helper function to safely format numbers
+                    def safe_format(value, default=0):
+                        """Safely format value, handling None and NaN"""
+                        import math
+                        if value is None or (isinstance(value, float) and math.isnan(value)):
+                            return f"{default:,.0f}"
+                        try:
+                            return f"{float(value):,.0f}"
+                        except (ValueError, TypeError):
+                            return f"{default:,.0f}"
+                    
+                    def safe_int(value):
+                        """Safely convert to int, handling strings and floats"""
+                        try:
+                            return int(float(str(value)))
+                        except (ValueError, TypeError):
+                            return 0
+                    
                     # Metrics
                     col1, col2, col3, col4, col5, col6 = st.columns(6)
                     with col1:
-                        st.metric("Oil (Sm³)", f"{latest.get('oil', 0):,.0f}")
+                        oil_val = latest.get('oil', None)
+                        st.metric("Oil (Sm³)", safe_format(oil_val, 0))
                     with col2:
-                        st.metric("Gas (Sm³)", f"{latest.get('gas', 0):,.0f}")
+                        gas_val = latest.get('gas', None)
+                        st.metric("Gas (Sm³)", safe_format(gas_val, 0))
                     with col3:
-                        st.metric("Water (Sm³)", f"{latest.get('water', 0):,.0f}")
+                        water_val = latest.get('water', None)
+                        st.metric("Water (Sm³)", safe_format(water_val, 0))
                     with col4:
-                        st.metric("Gas Inj", f"{latest.get('gas_injection', 0):,.0f}")
+                        gas_inj = latest.get('gas_injection', None)
+                        st.metric("Gas Inj", safe_format(gas_inj, 0))
                     with col5:
-                        st.metric("Water Inj", f"{latest.get('water_injection', 0):,.0f}")
+                        water_inj = latest.get('water_injection', None)
+                        st.metric("Water Inj", safe_format(water_inj, 0))
                     with col6:
-                        st.metric("Year", int(latest['year']))
+                        year_val = latest.get('year', 0)
+                        st.metric("Year", safe_int(year_val))
                     
                     # Charts
-                    well_data_sorted = well_data.sort_values('year').copy()
-                    well_data_sorted['cumulative_oil'] = well_data_sorted['oil'].cumsum()
+                    well_data_sorted = well_data.copy()
+                    # Convert year to numeric for proper sorting
+                    well_data_sorted['year'] = pd.to_numeric(well_data_sorted['year'], errors='coerce')
+                    well_data_sorted = well_data_sorted.sort_values('year')
+                    # Handle NaN values in oil before cumsum
+                    well_data_sorted['oil_clean'] = pd.to_numeric(well_data_sorted['oil'], errors='coerce').fillna(0)
+                    well_data_sorted['cumulative_oil'] = well_data_sorted['oil_clean'].cumsum()
                     
                     col1, col2 = st.columns(2)
                     with col1:
-                        fig = px.line(well_data_sorted, x='year', y='oil',
+                        fig = px.line(well_data_sorted, x='year', y='oil_clean',
                                      title=f"{selected_well} - Oil Rate",
-                                     markers=True, labels={'oil': 'Oil (Sm³)', 'year': 'Year'})
+                                     markers=True, labels={'oil_clean': 'Oil (Sm³)', 'year': 'Year'})
                         fig.update_layout(
                             plot_bgcolor='#2d3748', paper_bgcolor='#1a202c',
                             font=dict(color='#ffffff'),
@@ -534,7 +588,12 @@ def main():
                     
                     # Production trend
                     st.subheader("Production Trend")
-                    fig = px.line(well_data_sorted, x='year', y=['oil', 'gas', 'water'],
+                    # Clean data for production trend chart
+                    well_data_chart = well_data_sorted.copy()
+                    well_data_chart['oil'] = pd.to_numeric(well_data_chart['oil'], errors='coerce').fillna(0)
+                    well_data_chart['gas'] = pd.to_numeric(well_data_chart['gas'], errors='coerce').fillna(0)
+                    well_data_chart['water'] = pd.to_numeric(well_data_chart['water'], errors='coerce').fillna(0)
+                    fig = px.line(well_data_chart, x='year', y=['oil', 'gas', 'water'],
                                  title=f"{selected_well} - Production Over Time",
                                  markers=True)
                     fig.update_layout(plot_bgcolor='#2d3748', paper_bgcolor='#1a202c', font=dict(color='#ffffff'))
